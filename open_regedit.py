@@ -295,6 +295,82 @@ def limit_anticheat_priority():
     if success_count > 0:
         print("\n注意: 设置将在下次启动游戏时生效。")
 
+# 取消限制反作弊程序优先级
+def reset_anticheat_priority():
+    print("\n" + "=" * 50)
+    print("取消限制反作弊程序优先级")
+    print("=" * 50)
+    print("此功能将：")
+    print("1. 删除游戏进程的优先级设置")
+    print("2. 删除反作弊程序的优先级设置")
+    print("3. 恢复系统默认设置")
+    print("=" * 50)
+    
+    # 确认操作
+    confirm = input("\n确认要取消限制并恢复默认设置吗？(y/n): ")
+    if confirm.lower() != 'y':
+        print("操作已取消。")
+        return
+    
+    # 检查是否以管理员权限运行
+    if not is_admin():
+        print("\n需要管理员权限来修改注册表！")
+        print("请以管理员身份运行此脚本。")
+        return
+    
+    print("\n开始恢复...")
+    
+    # 定义要删除的注册表项
+    registry_settings = [
+        {
+            'name': 'DeltaForceClient-Win64-Shipping.exe',
+            'key': r'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\DeltaForceClient-Win64-Shipping.exe',
+            'subkey': 'PerfOptions'
+        },
+        {
+            'name': 'SGuard64.exe',
+            'key': r'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\SGuard64.exe',
+            'subkey': 'PerfOptions'
+        },
+        {
+            'name': 'SGuardSvc64.exe',
+            'key': r'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\SGuardSvc64.exe',
+            'subkey': 'PerfOptions'
+        }
+    ]
+    
+    success_count = 0
+    failed_count = 0
+    
+    for setting in registry_settings:
+        print(f"\n正在删除 {setting['name']} 的设置...")
+        try:
+            # 删除 PerfOptions 子项
+            full_key = setting['key'] + '\\' + setting['subkey']
+            cmd = ['reg', 'delete', full_key, '/f']
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode == 0:
+                print(f"  ✓ 已删除设置")
+                success_count += 1
+            else:
+                # 如果删除失败，可能是因为不存在，尝试检查父项
+                print(f"  ℹ 未找到设置或已删除")
+                success_count += 1
+        except Exception as e:
+            print(f"  ✗ 删除失败: {e}")
+            failed_count += 1
+    
+    # 显示设置结果
+    print("\n" + "=" * 50)
+    print("恢复完成！")
+    print("=" * 50)
+    print(f"成功恢复: {success_count} 个程序")
+    if failed_count > 0:
+        print(f"恢复失败: {failed_count} 项")
+    
+    if success_count > 0:
+        print("\n注意: 恢复将在下次启动游戏时生效。")
+
 # 修改注册表功能
 def modify_registry():
     # 注册表路径
@@ -400,10 +476,11 @@ def main_menu():
         print("1. 修改显卡型号")
         print("2. 清理NVIDIA DXCache缓存")
         print("3. 限制反作弊")
-        print("4. 退出")
+        print("4. 取消限制反作弊")
+        print("5. 退出")
         print("=" * 50)
         
-        choice = input("请输入选项编号（1-4）：")
+        choice = input("请输入选项编号（1-5）：")
         
         if choice == "1":
             modify_registry()
@@ -412,6 +489,8 @@ def main_menu():
         elif choice == "3":
             limit_anticheat_priority()
         elif choice == "4":
+            reset_anticheat_priority()
+        elif choice == "5":
             print("\n感谢使用，再见！")
             break
         else:
